@@ -37,7 +37,6 @@ const GlobalStyle = createGlobalStyle`
   body {
     line-height: 1.2;
     font-family: 'Noto Sans KR', sans-serif;
-    background-color: ${props => props.theme.bgColor};
     color: black;
 
     ol, ul {

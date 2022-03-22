@@ -1,112 +1,75 @@
-import React from 'react';
-import {DragDropContext, Droppable, DropResult} from "react-beautiful-dnd";
+import React, {useEffect, useRef, useState} from 'react';
 import styled from "styled-components";
-import {useRecoilState} from "recoil";
-import {toDoState} from "./Util/atoms";
-import Board from "./Components/Board";
-import {saveToDos} from "./Util/localStorage";
-import DraggableCard from "./Components/DraggableCard";
-import TrashCan from "./Components/TrashCan";
+import {motion, AnimatePresence, useMotionValue, useTransform, useViewportScroll} from 'framer-motion'
 
-const Wrapper = styled.div`
-  display: flex;
-  max-width: 1200px;
-  min-width: 800px;
-  width: 100%;
-  margin: 0 auto;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  border-radius: 5px;
-  font-size: 24px;
-`
-const Boards = styled.div`
+const Wrapper =
+    styled.div`
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: linear-gradient(135deg, #e09, #d0e);
+    `;
+
+const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  width: 50vw;
   gap: 10px;
-  min-width: 1200px;
 
-`
+  div:first-child,
+  div:last-child {
+    grid-column: span 2;
+  }
+`;
+
+const Box = styled(motion.div)`
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 40px;
+  height: 200px;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1), 0 10px 20px rgba(0, 0, 0, 0.06);
+`;
+
+const Overlay = styled(motion.div)`
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const overlay = {
+    hidden: {backgroundColor: "rgba(0, 0, 0, 0)"},
+    visible: {backgroundColor: "rgba(0, 0, 0, 0.5)"},
+    exit: {backgroundColor: "rgba(0, 0, 0, 0)"},
+};
 
 function App() {
-    const [toDos, setToDos] = useRecoilState(toDoState)
-    // 싱글 보드 이동
-    // destination 목적지, source 움직인 아이템
-    // 1) 기존 배열을 복제한다.
-    // 2) 복제한 배열에서 source를 삭제하고 destination에 넣는다.
-
-    // 멀티 보드 이동
-    // 1) 움직임이 있는 아이템의 보드를 복제한다.
-    // 2) 복제한 배열에서 source를 삭제하고 destination에 넣는다.
-    // 3) 모든 보드를 복제하고 움직임이 있던 보드를 복제하여 변형한 보드로 변경한다.
-    const onDragEnd = (info: DropResult) => {
-        const {destination, source} = info
-        console.log(source, destination)
-        if (!destination) return
-        if (destination.droppableId === 'trashCan') {
-            setToDos((allBoards) => {
-                const sourceBoard = [...allBoards[source.droppableId]]
-                sourceBoard.splice(source.index, 1)
-                const newToDos = {
-                    ...allBoards, [source.droppableId]: sourceBoard
-                }
-                saveToDos(newToDos)
-                return newToDos
-            })
-            return
-        }
-        if (destination?.droppableId === source.droppableId) {
-            setToDos((allBoards) => {
-                const boardCopy = [...allBoards[source.droppableId]]
-                const taskCopy = boardCopy[source.index]
-                boardCopy.splice(source.index, 1)
-                boardCopy.splice(destination?.index, 0, taskCopy)
-                const newToDos = {...allBoards, [source.droppableId]: boardCopy}
-                saveToDos(newToDos)
-                return newToDos
-            })
-        }
-        if (destination.droppableId !== source.droppableId) {
-            setToDos(allBoards => {
-                const sourceBoard = [...allBoards[source.droppableId]]
-                const taskObj = sourceBoard[source.index]
-                const destinationBoard = [...allBoards[destination.droppableId]]
-                sourceBoard.splice(source.index, 1)
-                destinationBoard.splice(destination?.index, 0, taskObj)
-                const newToDos = {
-                    ...allBoards,
-                    [source.droppableId]: sourceBoard,
-                    [destination.droppableId]: destinationBoard
-                }
-                saveToDos(newToDos)
-                return newToDos
-            })
-        }
-    }
-
+    const [id, setId] = useState<null | string>(null);
     return (
-        <>
-            <DragDropContext onDragEnd={onDragEnd}>
-                <Wrapper>
-                    {/*<Droppable droppableId='boards'>*/}
-                    {/*    {(provided) =>*/}
-                    <Boards
-                        // ref={provided.innerRef}
+        <Wrapper>
+            <Grid>
+                {["1", "2", "3", "4"].map((n) => (
+                    <Box onClick={() => setId(n)} key={n} layoutId={n}/>
+                ))}
+            </Grid>
+            <AnimatePresence>
+                {id ? (
+                    <Overlay
+                        variants={overlay}
+                        onClick={() => setId(null)}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
                     >
-                        {Object.keys(toDos).map((boardId, index) =>
-                            <Board
-                                key={boardId}
-                                toDos={toDos[boardId]}
-                                boardId={boardId}
-                                index={index}/>)}
-                        {/*{provided.placeholder}*/}
-                    </Boards>
-                    {/*}</Droppable>*/}
-                    <TrashCan/>
-                </Wrapper>
-            </DragDropContext>
-        </>
-    )
+                        <Box layoutId={id} style={{width: 400, height: 200}}/>
+                    </Overlay>
+                ) : null}
+            </AnimatePresence>
+        </Wrapper>
+    );
 }
 
-export default App;
+export default App
